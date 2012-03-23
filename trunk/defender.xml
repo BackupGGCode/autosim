@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<car type="Defender 90" >
+	<chassis model="Resources/Models/Defender" >
+		<global-pos x="0" y="0" z="2" />
+		<body mass="1940" >
+			<center-of-mass x="0" y="-0.5" z="-0.6" />
+			<boxshape>
+				<dimensions x="0.9" y="2.1" z="0.4" />
+				<local-pos x="0" y="0" z="-0.3" />
+			</boxshape>
+			<boxshape>
+				<dimensions x="0.8" y="1.15" z="0.37" />
+				<local-pos x="0" y="1" z="0.4" />
+			</boxshape>
+		</body>
+	</chassis>
+	<tires>
+		
+	</tires>
+</car>
