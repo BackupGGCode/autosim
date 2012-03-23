@@ -1,11 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<car type="Defender 90" >
+
+<!--	Car node:
+		The car's main node. 
+		type:	The car's type
+		turn-angle-outside:	The maximum turning angle for the outer-tire when turning.
+		turn-angle-inside:	The maximum turning angle for the inner-tire when turning.
+//-->
+<car type="Defender 90" turn-angle-outside="32" turn-angle-inside="37" >
+	
+	<!--	Chassis node
+			The root node for configuring the car's chassis visually and physically
+			model:	The path to the car's chassis 3D model.
+	//-->
 	<chassis model="Resources/Models/Defender" >
+		<!--	Center-of-mass node
+				A 3D position representing the local coordinate of the car's center of gravity.
+		//-->
+		<center-of-mass x="0" y="-0.5" z="-0.6" />
+		<!--	Global-pos node
+				A 3D position for placing objects globally in the world.
+		//-->
 		<global-pos x="0" y="0" z="2" />
+		
+		<!--	Body node
+				A node that describes a physical rigid body
+				mass:	The body's total mass.
+		//-->
 		<body mass="1940" >
-			<center-of-mass x="0" y="-0.5" z="-0.6" />
+			<!--	Boxshhape node
+					A node that describes a physical box shape.
+			//-->
 			<boxshape>
+				<!-- Dimensions for the box //-->
 				<dimensions x="0.9" y="2.1" z="0.4" />
+				<!-- A local position for the box in chassis coordinates //-->
 				<local-pos x="0" y="0" z="-0.3" />
 			</boxshape>
 			<boxshape>
@@ -14,7 +42,41 @@
 			</boxshape>
 		</body>
 	</chassis>
+	
 	<tires>
+		<!--
+			tire node:
+				name:	The base for the object's name.
+				model:	The path to the visual model for the wheel.
+				radius:	The wheel's radius.
+				suspension-travel:	Maximum extension distance of suspension along shape's -Y axis.
+				steerable:	true / false determining wether the wheel is steerable or not.
+				rotation:	Wheel's initial head, used to have all wheels face outside properly
+		//-->
+		<tire name="fl" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="true" rotation="180" >
+			<!-- A local position for the tire within car coordinates //-->
+			<local-pos x="0.8" y="-1.4" z="-0.70" />
+			<!--	Spring node
+					Describes a suspension system
+					spring:	Spring coefficient [0,inf]
+					damper: Damper coefficient [0,inf]
+					target-value:	Target value (angle/position) of spring where the spring force is zero.
+			//-->
+			<spring spring="4000" damper="2000" target-value="0.5" />
+		</tire>
+		<tire name="fr" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="true" rotation="0" >
+			<local-pos x="-0.8" y="-1.4" z="-0.70" />
+			<spring spring="4000" damper="2000" target-value="0.5" />
+		</tire>
 		
+		<tire name="rl" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="false" rotation="180" >
+			<local-pos x="0.8" y="1.25" z="-0.70" />
+			<spring spring="2500" damper="750" target-value="0.5" />
+		</tire>
+		<tire name="rr" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="false" rotation="0" >
+			<local-pos x="-0.8" y="1.25" z="-0.70" />
+			<spring spring="2500" damper="750" target-value="0.5" />
+		</tire>
 	</tires>
+	
 </car>
