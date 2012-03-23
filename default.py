@@ -26,43 +26,51 @@ class World:
         self.car = Car( self.physxScene )
         self.car.setSteer( -1.0 )
         taskMgr.add(self.simulate, 'PhysX Simulation')
+        self.keyControl = KeyControl()
+        #render.setShaderAuto() 
         
+    def enablePhysxDebug(self):
         self.debugNP = render.attachNewNode(self.physxScene.getDebugGeomNode())
         self.debugNP.node().on()
         self.debugNP.node().visualizeWorldAxes(True)
-        
-        self.keyControl = KeyControl()
-        #render.setShaderAuto() 
         
     def setupPhysX(self):
         self.physx = PhysxManager.getGlobalPtr()
         sceneDesc = PhysxSceneDesc()
         sceneDesc.setGravity(Vec3(0, 0, -9.81))
         self.physxScene = self.physx.createScene(sceneDesc)
-        m0 = self.physxScene.getMaterial(0)
-        m0.setRestitution(0.1)
-        m0.setStaticFriction(0.3)
-        m0.setDynamicFriction(0.3)
+        mGround = self.physxScene.getMaterial(0)
+        mGround.setRestitution(0.0)
+        mGround.setStaticFriction(0.8)
+        mGround.setDynamicFriction(0.8)
     
     def addGround(self):
         groundShape = PhysxPlaneShapeDesc()
         groundShape.setPlane( Vec3( 0, 0, 1 ), 0 );
+        groundShape.setSkinWidth( 0.0 )
         groundActor = PhysxActorDesc();
         groundActor.setName( 'ground' )
         groundActor.addShape( groundShape )
         self.ground = self.physxScene.createActor( groundActor )
     
     def setupLight(self):
-        self.light = render.attachNewNode(DirectionalLight("Spot")) 
-        self.light.node().setScene(render) 
-        self.light.node().setShadowCaster(True) 
-        render.setLight(self.light) 
+        ambient_source = AmbientLight('ambient')
+        ambient_source.setColor(Vec4(0.082,0.133,0.255,1))
+        ambient = render.attachNewNode(ambient_source.upcastToPandaNode())
+        render.setLight( ambient )
+        
+        sun_source = DirectionalLight( 'sun' )
+        sun_source.setColor( Vec4( 1, 0.96, 1, 1 ))
+        sun_source.setScene( render )
+        sun = render.attachNewNode( sun_source )
+        sun.setHpr( 270, -45, 0 )
+        render.setLight( sun )
         
     def simulate(self, task):
         dt = globalClock.getDt()
         self.physxScene.simulate(dt)
         self.physxScene.fetchResults()
-        self.car.simulate()
+        self.car.simulate(dt)
         self.keyControl.controlCar( self.car )
         base.cam.lookAt( self.car.chassis.getGlobalPos() )
         #print "num actors=" + str( self.physxScene.getNumActors() )
