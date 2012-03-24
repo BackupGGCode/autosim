@@ -8,6 +8,26 @@
 //-->
 <car type="Defender 90" turn-angle-outside="32" turn-angle-inside="37" >
 	
+	<camera name="inside">
+		<pos x="0.4" y="0.45" z="0.575" />
+		<hpr x="180.0" y="0" z="0" />
+	</camera>
+	<camera name="behind">
+		<pos x="0.0" y="10.0" z="4.0" />
+		<hpr x="180.0" y="-20" z="0" />
+	</camera>
+	
+	<audio>
+		<profile name="outside" >
+			<engine-idle file="Resources/Audio/defender-engine-idle-outside.wav" loop="true" />
+			<engine-start file="Resources/Audio/defender-engine-start-outside.wav" loop="false" />
+		</profile>
+		<profile name="inside">
+			<engine-idle file="Resources/Audio/defender-engine-idle-inside.wav" loop="true" />
+			<engine-start file="Resources/Audio/defender-engine-start-inside.wav" loop="false" />
+		</profile>
+	</audio>
+
 	<!--	Chassis node
 			The root node for configuring the car's chassis visually and physically
 			model:	The path to the car's chassis 3D model.
@@ -16,7 +36,7 @@
 		<!--	Center-of-mass node
 				A 3D position representing the local coordinate of the car's center of gravity.
 		//-->
-		<center-of-mass x="0" y="-0.5" z="-0.6" />
+		<center-of-mass x="0" y="-0.5" z="-0.9" />
 		<!--	Global-pos node
 				A 3D position for placing objects globally in the world.
 		//-->

@@ -1,4 +1,6 @@
-import direct.directbase.DirectStart 
+import direct.directbase.DirectStart
+from direct.showbase.Audio3DManager import Audio3DManager 
+from direct.showbase.DirectObject import DirectObject
 from panda3d.core import *
 from panda3d.physx import PhysxManager
 from panda3d.physx import PhysxEnums
@@ -12,8 +14,9 @@ from panda3d.physx import PhysxPointOnLineJointDesc
 from skydome import SkyDome
 from Car import Car
 from keycontrol import KeyControl
+from cameracontrol import CameraControl
 
-class World:
+class World( DirectObject ):
     """ """
     
     def __init__(self):
@@ -21,13 +24,16 @@ class World:
         self.sky = SkyDome( "Resources/Models/skydome.egg" )
         self.sky.sky.setScale( Vec3( 10,10,10))
         self.setupPhysX()
+        self.setup3DAudio()
         self.addGround()
         self.setupLight()
         #self.car = Car( self.physxScene )
-        self.car = Car( self.physxScene, "defender.xml" )
-        self.car.setSteer( -1.0 )
+        self.car = Car( self.physxScene, self.audio3d, "defender.xml" )
+        #self.car.setSteer( -1.0 )
+        self.car.setActiveAudioProfile( 'outside' )
         taskMgr.add(self.simulate, 'PhysX Simulation')
         self.keyControl = KeyControl()
+        self.cameraControl = CameraControl( self.car )
         #render.setShaderAuto() 
         
     def enablePhysxDebug(self):
@@ -44,6 +50,10 @@ class World:
         mGround.setRestitution(0.0)
         mGround.setStaticFriction(0.8)
         mGround.setDynamicFriction(0.8)
+        
+    def setup3DAudio(self):
+        self.audio3d = Audio3DManager( base.sfxManagerList[0], base.cam )
+        #self.audio3d.setSoundVelocityAuto(#sound)
     
     def addGround(self):
         groundShape = PhysxPlaneShapeDesc()
@@ -73,7 +83,8 @@ class World:
         self.physxScene.fetchResults()
         self.car.simulate(dt)
         self.keyControl.controlCar( self.car )
-        base.cam.lookAt( self.car.chassis.getGlobalPos() )
+        #base.cam.lookAt( self.car.chassis.getGlobalPos() )
+        self.cameraControl.simulate(dt)
         #print "num actors=" + str( self.physxScene.getNumActors() )
         return task.cont
     
@@ -81,6 +92,8 @@ class World:
 #base.disableMouse()
 base.cam.setPos(10, -25, 5)
 base.cam.lookAt(0, 0, 0)
+base.cam.node().getLens().setNear( 0.1 )
+base.cam.node().getLens().setFov( 60 )
 
 world = World()
 

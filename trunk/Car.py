@@ -1,4 +1,5 @@
 from pandac.PandaModules import * 
+from direct.showbase import Audio3DManager
 
 from panda3d.physx import PhysxActorDesc
 from panda3d.physx import PhysxBodyDesc
@@ -14,16 +15,19 @@ from panda3d.physx import PhysxWheelContactData
 from xml.dom import minidom
 
 def readVec3( node ):
+    """ An XML helper routine to parse a Vec3 from a node """
     return Vec3( float( node.getAttribute( 'x' ) ),
                  float( node.getAttribute( 'y' ) ),
                  float( node.getAttribute( 'z' ) ) )
 
 def readPoint3( node ):
+    """ An XML helper routine to parse a Point3 from a node """
     return Point3( float( node.getAttribute( 'x' ) ),
                    float( node.getAttribute( 'y' ) ),
                    float( node.getAttribute( 'z' ) ) )
 
 def toBool( string ):
+    """ An helper routine that returns True if the supplied string equals 'true', otherwise False """
     return string == 'true'
 
 class Tire:
@@ -41,6 +45,7 @@ class Tire:
         self.torque = True
         self.brake = True
         
+        
     def createWheelShapeTire( self, physxScene, name, pos, carActor, material, radius, spring, damper, targetValue ):
         """ Creates a raycast tire using Wheel Shapes which are a simple way of creating physx tires. """
         wheelDesc = PhysxWheelShapeDesc()
@@ -55,7 +60,9 @@ class Tire:
         wheelDesc.setSuspension( springDesc )
         self.shape = carActor.createShape( wheelDesc )
 
+
     def simulate(self, dt ):
+        """ Simulates the tire, places the visual model according to the physical model """
         self.model.setPosQuat( self.shape.getGlobalPos(), self.shape.getGlobalQuat() )    # Inherit position from the WheelShape
         contact = PhysxWheelContactData()
         self.shape.getContact( contact )
@@ -65,21 +72,50 @@ class Tire:
             self.model.setY( self.model, -self.shape.getSuspensionTravel() )
         self.tiremodel.setP( self.tiremodel.getP() + ( dt*self.shape.getAxleSpeed()*57.3 ) )
         self.model.setR( self.model, -self.shape.getSteerAngle() )
+    
         
+class AudioProfile:
+    """ An audio profile stores the audio files used by the Car for the current view point.
+    The main reason for the audio profile is that the audio varies wether the user is inside
+    the car or outside. """
+    
+    def __init__( self, profileNode, audio3d, car ):
+        self.name = profileNode.getAttribute( 'name' )
+        self.active = False
+        self.engineIdle = self.loadSoundNode( audio3d, car, profileNode, 'engine-idle' )
+        self.engineStart = self.loadSoundNode( audio3d, car, profileNode, 'engine-start' )
+    
+    def loadSoundNode( self, audio3d, car, parentNode, nodeName ):
+        soundNode = parentNode.getElementsByTagName( nodeName )[0]
+        sound = audio3d.loadSfx( soundNode.getAttribute( 'file' ) )
+        audio3d.attachSoundToObject( sound, car.chassisModel )
+        audio3d.setSoundVelocityAuto( sound )
+        sound.setLoop( toBool( soundNode.getAttribute( 'loop' ) ) )
+        return sound
+    
+    def setEngineRunning( self, running ):
+        if running:
+            self.engineIdle.play()
+        else:
+            self.engineIdle.stop()
+    
+    def setActive( self, active ):
+        self.active = active
+    
+    #def simulate(self, dt ):
 
 class Car:
     """ """
     
-    def __init__( self, physxScene, xmlfile ):
+    def __init__( self, physxScene, audio3d, xmlfile ):
         """ """
-        #self.initChassis( physxScene );
-        #self.initTires( physxScene )
-        self.tires = []     # Holds the Car's tires
-        self.steer = 0.0    # Represents current steering value
-        self.initByXml( physxScene, xmlfile )
+        self.tires = []         # Holds the Car's tires
+        self.audioProfiles = [] # Holds the Car's audio profiles
+        self.steer = 0.0        # Represents current steering value
+        self.engineTorque = 0.0 # Represents the engine torque
+        self.initByXml( physxScene, audio3d, xmlfile )
         
-        
-    def initByXml(self, physxScene, xmlfile):
+    def initByXml(self, physxScene, audio3d, xmlfile):
         xmldoc = minidom.parse( xmlfile )
         carNode = xmldoc.getElementsByTagName( 'car' )[0]
         
@@ -87,9 +123,15 @@ class Car:
         self.type = carNode.getAttribute( 'type' )
         self.innerSteer = float( carNode.getAttribute( 'turn-angle-inside' ) )
         self.outerSteer = float( carNode.getAttribute( 'turn-angle-outside' ) )
+        self.initChassisByXml( physxScene, carNode )
+        self.initTyresByXml( physxScene, carNode )
+        self.initAudioByXml( audio3d, carNode )
+        self.initCameraByXml( carNode )
         
+    def initChassisByXml(self, physxScene, carNode):
+        """ Loads chassis configuraiton from an xml file and applies to the car """
         # Start initializing the chassis ...
-        chassisNode = xmldoc.getElementsByTagName( 'chassis' )[0]
+        chassisNode = carNode.getElementsByTagName( 'chassis' )[0]
         bodyNode = chassisNode.getElementsByTagName( 'body' )[0]
         
         bodyDesc = PhysxBodyDesc()
@@ -112,12 +154,14 @@ class Car:
         self.chassisModel = loader.loadModel( chassisNode.getAttribute( 'model' ))
         self.chassisModel.reparentTo( render )
         
+    
+    def initTyresByXml( self, physxScene, carNode ):
+        """ Loads tire configuraiton from an xml file and applies to the car """
         rubberDesc = PhysxMaterialDesc()
         rubberDesc.setRestitution(0.1)
         rubberDesc.setStaticFriction(1.2)
         rubberDesc.setDynamicFriction(0.1)
         mRubber = physxScene.createMaterial( rubberDesc )
-        
         # Start loading the tires ...
         tireNodes = carNode.getElementsByTagName( 'tire' )
         for tireNode in tireNodes:
@@ -131,40 +175,29 @@ class Car:
                          float( springNode.getAttribute( 'target-value' ) ) )
             self.tires.append( tire )
             tire.steerable = toBool( tireNode.getAttribute( 'steerable' ))
+
+
+    def initAudioByXml( self, audio3d, carNode ):
+        """ Loads audio information from an xml file and applies it to the car """
+        audioNode = carNode.getElementsByTagName( 'audio' )[0]
+        profileNodes = audioNode.getElementsByTagName( 'profile' )
+        for profileNode in profileNodes:
+            profile = AudioProfile( profileNode, audio3d, self )
+            self.audioProfiles.append( profile )
             
-        
-    def initChassis( self, physxScene ):
-        shapeDesc = PhysxBoxShapeDesc();
-        shapeDesc.setDimensions( Vec3( 0.9, 2.1, 0.4 ) )
-        shapeDesc.setLocalPos( Point3( 0, 0, -0.3 ))
-        shapeDesc2 = PhysxBoxShapeDesc()
-        shapeDesc2.setDimensions( Vec3( 0.8, 1.15, 0.37 ))
-        shapeDesc2.setLocalPos( Point3( 0, 1, 0.4 ))
-        bodyDesc = PhysxBodyDesc()
-        bodyDesc.setMass( 2000.0 )
-        actorDesc = PhysxActorDesc()
-        actorDesc.setBody( bodyDesc )
-        actorDesc.setName( 'Chassis' )
-        actorDesc.addShape( shapeDesc )
-        actorDesc.addShape( shapeDesc2 )
-        actorDesc.setGlobalPos( Point3( 0, 0, 2 ))
-        self.chassis = physxScene.createActor( actorDesc );
-        self.chassis.setCMassOffsetLocalPos( Point3( 0, -0.5, -0.6 ) )
-        self.chassisModel = loader.loadModel( 'Resources/Models/Defender' )
-        self.chassisModel.reparentTo( render )
-        
-    def initTires(self, physxScene):
-        rubberDesc = PhysxMaterialDesc()
-        rubberDesc.setRestitution(0.1)
-        rubberDesc.setStaticFriction(1.2)
-        rubberDesc.setDynamicFriction(0.1)
-        mRubber = physxScene.createMaterial( rubberDesc )
-        
-        self.tires = []
-        self.tires.append( Tire( physxScene, "flTire", Point3( 0.8, -1.4, -0.7 ), self.chassis, 180, mRubber ) );
-        self.tires.append( Tire( physxScene, "frTire", Point3( -0.8, -1.4, -0.7 ), self.chassis, 0, mRubber ) );
-        self.tires.append( Tire( physxScene, "rrTire", Point3( -0.8, 1.25, -0.7 ), self.chassis, 0, mRubber ) );
-        self.tires.append( Tire( physxScene, "rlTire", Point3( 0.8, 1.25, -0.7 ), self.chassis, 180, mRubber ) );
+    def initCameraByXml( self, carNode ):
+        cameraNodes = carNode.getElementsByTagName('camera')
+        for cameraNode in cameraNodes:
+            np = self.chassisModel.attachNewNode( "camera-" + cameraNode.getAttribute( 'name' ) )
+            np.setPos( readPoint3( cameraNode.getElementsByTagName('pos')[0] ) )
+            np.setHpr( readVec3( cameraNode.getElementsByTagName( 'hpr' )[0] ) )
+            
+    def setActiveAudioProfile(self, name):
+        for profile in self.audioProfiles:
+            if profile.name == name:
+                profile.setEngineRunning( True )
+            else:
+                profile.setEngineRunning( False )
         
     def setSteer(self, steer):
         """ Set the car's steering value. The value ranges from -1.0 - 1.0, 0.0 being a neutral position """
@@ -190,8 +223,6 @@ class Car:
         for tire in self.tires:
             if tire.brake:
                 tire.shape.setBrakeTorque( brake )
-        #self.tires[2].shape.setBrakeTorque( brake )
-        #self.tires[3].shape.setBrakeTorque( brake )
         
     def setMotorTorque(self, torque):
         """ Sets the motor torque on the car.  The value ranges from 0.0 to 1.0, 1.0 being maximum torque"""
@@ -203,19 +234,13 @@ class Car:
         for tire in self.tires:
             if tire.torque:
                 tire.shape.setMotorTorque( torque )
-        #self.tires[0].shape.setMotorTorque( torque )
-        #self.tires[1].shape.setMotorTorque( torque )
-        #self.tires[2].shape.setMotorTorque( torque )
-        #self.tires[3].shape.setMotorTorque( torque )
+        
         
     def simulate(self,dt):
         self.chassisModel.setPosQuat( self.chassis.getGlobalPos(), self.chassis.getGlobalQuat() )
         for tire in self.tires:
             tire.simulate(dt);
-            #matrix = tire.shape.getLocalMat()
             
-            #tire.model.setMat( matrix )
-            #print tire.shape.getName() + " axleSpd=" + str( tire.shape.getAxleSpeed() ) + " susp=" + str( tire.shape.getSuspensionTravel() )
-            #tire.model.setPosQuat( tire.actor.getGlobalPos(), tire.actor.getGlobalQuat() )
+            
         
         
