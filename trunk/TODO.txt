@@ -1,0 +1,28 @@
+
+List of items to be done:
+
+Fix Audio
+  X Car engine sound is always idle
+  X Switch between inside and outside profiles
+  X Ground sound
+	Some ambient sound ? 
+	
+Gauges
+	It would be nice to see the car's KM/h
+	
+Environment
+	Add some props to the Track (buildings, fences, light posts, tires etc.)
+  X Fog
+  X Shadow on ground
+	Particle smoke
+	
+Engine behaviour
+	Simulate engine properly
+	Simulate gearbox
+	
+Car physics
+	Car seems a bit slow and sluggish 
+	
+Camera
+	More spring feel to the camera - too fixed on the chassis
+

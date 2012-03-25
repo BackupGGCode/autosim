@@ -6,7 +6,11 @@
 		turn-angle-outside:	The maximum turning angle for the outer-tire when turning.
 		turn-angle-inside:	The maximum turning angle for the inner-tire when turning.
 //-->
-<car type="Defender 90" turn-angle-outside="32" turn-angle-inside="37" >
+<car type="Defender 90" 
+	turn-angle-outside="32" 
+	turn-angle-inside="37" 
+
+	>
 	
 	<camera name="inside">
 		<pos x="0.4" y="0.45" z="0.5" />
@@ -21,10 +25,12 @@
 		<profile name="outside" >
 			<engine-idle file="Resources/Audio/defender-engine-idle-outside.wav" loop="true" />
 			<engine-start file="Resources/Audio/defender-engine-start-outside.wav" loop="false" />
+			<road-sound file="Resources/Audio/gravel-outside.wav" loop="true" />
 		</profile>
 		<profile name="inside">
 			<engine-idle file="Resources/Audio/defender-engine-idle-inside.wav" loop="true" />
 			<engine-start file="Resources/Audio/defender-engine-start-inside.wav" loop="false" />
+			<road-sound file="Resources/Audio/gravel-inside.wav" loop="true" />
 		</profile>
 	</audio>
 
