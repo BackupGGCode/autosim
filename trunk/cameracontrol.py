@@ -14,15 +14,20 @@ class CameraControl(DirectObject):
         self.accept( '1', self.enableTowerCamera )
         self.accept( '2', self.enableInsideCamera )
         self.accept( '3', self.enableBehindCamera )
+        self.trackCar = False
         self.car = car
 
     def enableTowerCamera(self ):
         """ """
-        
+        base.cam.reparentTo( render )
+        base.cam.setPos(10, -25, 5)
+        self.trackCar = True
+        base.cam.lookAt( self.car.chassis.getGlobalPos() )
         
     def enableInsideCamera(self ):
         """ """
         np = self.car.chassisModel.find( "**/camera-inside" )
+        self.trackCar = False
         if np is not None:
             base.cam.setPos( Point3( 0,0,0 ))
             base.cam.setHpr( Vec3( 0,0,0 ))
@@ -31,6 +36,7 @@ class CameraControl(DirectObject):
     def enableBehindCamera(self ):
         """ """
         np = self.car.chassisModel.find( "**/camera-behind" )
+        self.trackCar = False
         if np is not None:
             base.cam.setPos( Point3( 0,0,0 ))
             base.cam.setHpr( Vec3( 0,0,0 ))
@@ -38,6 +44,8 @@ class CameraControl(DirectObject):
         
     def simulate(self, dt):
         """ """
+        if self.trackCar:
+            base.cam.lookAt( self.car.chassis.getGlobalPos() )
         
     #def set_keystate(self, key, state):
         #self.keystate[key] = state
