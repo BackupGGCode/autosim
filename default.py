@@ -1,7 +1,11 @@
+from panda3d.core import *
+from pandac.PandaModules import loadPrcFileData
+loadPrcFileData("", "framebuffer-multisample 1")
+loadPrcFileData("", "prefer-parasite-buffer #f") 
 import direct.directbase.DirectStart
 from direct.showbase.Audio3DManager import Audio3DManager 
 from direct.showbase.DirectObject import DirectObject
-from panda3d.core import *
+
 from panda3d.physx import PhysxManager
 from panda3d.physx import PhysxEnums
 from panda3d.physx import PhysxSceneDesc
@@ -30,16 +34,16 @@ class World( DirectObject ):
         self.sky.sky.setScale( Vec3( 10,10,10))
         self.setupPhysX()
         self.setup3DAudio()
-        #self.addGround()
-        self.setupLight()
-        #self.car = Car( self.physxScene )
+        
         self.car = Car( self.physxScene, self.audio3d, "defender.xml" )
-        #self.car.setSteer( -1.0 )
         self.car.setActiveAudioProfile( 'outside' )
+        
+        self.setupLight()
         self.initTrack()
         taskMgr.add(self.simulate, 'PhysX Simulation')
         self.keyControl = KeyControl()
         self.cameraControl = CameraControl( self.car )
+        self.cameraControl.enableTowerCamera()
         render.setShaderAuto() 
         #self.enablePhysxDebug()
         
@@ -57,7 +61,13 @@ class World( DirectObject ):
         actor.setName( 'trackcollision' )
         actor.addShape( triMeshShapeDesc )
         self.physxtrack = self.physxScene.createActor( actor )
-        self.track.reparentTo( render ) # todo: replace with nice model
+        self.track.reparentTo( render )
+        
+        linfog = Fog( "Fog" )
+        linfog.setColor( Vec4( 0.8, 0.85, 0.8, 1 ) )
+        linfog.setExpDensity( 0.003 )
+        self.track.attachNewNode(linfog)
+        render.setFog(linfog)
         
     def enablePhysxDebug(self):
         self.debugNP = render.attachNewNode(self.physxScene.getDebugGeomNode())
@@ -76,29 +86,28 @@ class World( DirectObject ):
         
     def setup3DAudio(self):
         self.audio3d = Audio3DManager( base.sfxManagerList[0], base.cam )
-        #self.audio3d.setSoundVelocityAuto(#sound)
-    
-    def addGround(self):
-        groundShape = PhysxPlaneShapeDesc()
-        groundShape.setPlane( Vec3( 0, 0, 1 ), 0 );
-        groundShape.setSkinWidth( 0.0 )
-        groundActor = PhysxActorDesc();
-        groundActor.setName( 'ground' )
-        groundActor.addShape( groundShape )
-        self.ground = self.physxScene.createActor( groundActor )
+
     
     def setupLight(self):
         ambient_source = AmbientLight('ambient')
-        ambient_source.setColor(Vec4(0.082,0.133,0.255,1))
+        ambient_source.setColor(Vec4( 0.6, 0.65, 0.7, 1 ))
         ambient = render.attachNewNode(ambient_source.upcastToPandaNode())
         render.setLight( ambient )
         
-        sun_source = DirectionalLight( 'sun' )
-        sun_source.setColor( Vec4( 1, 0.96, 1, 1 ))
-        sun_source.setScene( render )
-        sun = render.attachNewNode( sun_source )
-        sun.setHpr( 200, -45, 0 )
+        sun = render.attachNewNode( DirectionalLight( 'sun' ) )
+        sun.node().setScene( render )
         render.setLight( sun )
+        sun.reparentTo( self.car.chassisModel )
+        sun.setH( -60 )
+        sun.setP( -60 )
+        sun.setPos( 0, 0, 10 )
+        sun.node().getLens().setFov( 70 )
+        sun.node().getLens().setNearFar( 1, 20 )
+        sun.node().getLens().setFilmSize( 16, 16 )
+        sun.node().setColor( Vec4( 1, 0.96, 1, 1 ))
+        sun.node().setShadowCaster( True )
+        self.sun = sun
+        
         
     def simulate(self, task):
         dt = globalClock.getDt()
@@ -106,9 +115,9 @@ class World( DirectObject ):
         self.physxScene.fetchResults()
         self.car.simulate(dt)
         self.keyControl.controlCar( self.car )
-        #base.cam.lookAt( self.car.chassis.getGlobalPos() )
         self.cameraControl.simulate(dt)
-        #print "num actors=" + str( self.physxScene.getNumActors() )
+        self.sun.setH( render, -60 )
+        self.sun.setP( render, -60 )
         return task.cont
     
 
@@ -117,6 +126,8 @@ base.cam.setPos(10, -25, 5)
 base.cam.lookAt(0, 0, 0)
 base.cam.node().getLens().setNear( 0.1 )
 base.cam.node().getLens().setFov( 60 )
+
+render.setAntialias(AntialiasAttrib.MMultisample,1)
 
 world = World()
 

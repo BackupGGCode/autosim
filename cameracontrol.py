@@ -23,6 +23,7 @@ class CameraControl(DirectObject):
         base.cam.setPos(10, -25, 5)
         self.trackCar = True
         base.cam.lookAt( self.car.chassis.getGlobalPos() )
+        self.car.setCurrentAudioProfile( 'outside' )
         
     def enableInsideCamera(self ):
         """ """
@@ -32,6 +33,7 @@ class CameraControl(DirectObject):
             base.cam.setPos( Point3( 0,0,0 ))
             base.cam.setHpr( Vec3( 0,0,0 ))
             base.cam.reparentTo( np )
+            self.car.setCurrentAudioProfile( 'inside' )
         
     def enableBehindCamera(self ):
         """ """
@@ -41,6 +43,7 @@ class CameraControl(DirectObject):
             base.cam.setPos( Point3( 0,0,0 ))
             base.cam.setHpr( Vec3( 0,0,0 ))
             base.cam.reparentTo( np )
+            self.car.setCurrentAudioProfile( 'outside' )
         
     def simulate(self, dt):
         """ """

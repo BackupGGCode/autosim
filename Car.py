@@ -44,7 +44,7 @@ class Tire:
         self.steerable = True
         self.torque = True
         self.brake = True
-        
+
         
     def createWheelShapeTire( self, physxScene, name, pos, carActor, material, radius, spring, damper, targetValue ):
         """ Creates a raycast tire using Wheel Shapes which are a simple way of creating physx tires. """
@@ -81,9 +81,12 @@ class AudioProfile:
     
     def __init__( self, profileNode, audio3d, car ):
         self.name = profileNode.getAttribute( 'name' )
+        self.sounds = []
         self.active = False
         self.engineIdle = self.loadSoundNode( audio3d, car, profileNode, 'engine-idle' )
         self.engineStart = self.loadSoundNode( audio3d, car, profileNode, 'engine-start' )
+        self.roadSound = self.loadSoundNode( audio3d, car, profileNode, 'road-sound' )
+        self.car = car
     
     def loadSoundNode( self, audio3d, car, parentNode, nodeName ):
         soundNode = parentNode.getElementsByTagName( nodeName )[0]
@@ -91,6 +94,7 @@ class AudioProfile:
         audio3d.attachSoundToObject( sound, car.chassisModel )
         audio3d.setSoundVelocityAuto( sound )
         sound.setLoop( toBool( soundNode.getAttribute( 'loop' ) ) )
+        self.sounds.append( sound )
         return sound
     
     def setEngineRunning( self, running ):
@@ -101,6 +105,17 @@ class AudioProfile:
     
     def setActive( self, active ):
         self.active = active
+        if self.active == False:
+            for sound in self.sounds:
+                sound.stop()
+        else:
+            for sound in self.sounds:
+                if sound.getLoop():
+                    sound.play()
+                
+    def simulate( self, dt ):
+        self.roadSound.setVolume( min( self.car.speed / 15, 3.0 ) )
+        self.engineIdle.setPlayRate( max( 1.0, self.car.torque / 75 ))
     
     #def simulate(self, dt ):
 
@@ -114,8 +129,25 @@ class Car:
         self.steer = 0.0        # Represents current steering value
         self.engineTorque = 0.0 # Represents the engine torque
         self.initByXml( physxScene, audio3d, xmlfile )
+        self.speed = 0.0        # The car's speed.
+        self.torque = 0.0
+        self.brake = 0.0
+        self.currentAudioProfile = None
+        
+    def setCurrentAudioProfile(self, name ):
+        newActive = None
+        if self.currentAudioProfile is not None:
+            self.currentAudioProfile.setActive( False )
+            
+        for profile in self.audioProfiles:
+            if profile.name == name:
+                newActive = profile
+        if newActive is not None:
+            newActive.setActive( True )
+            self.currentAudioProfile = newActive
         
     def initByXml(self, physxScene, audio3d, xmlfile):
+        """ Initializes the Car from an XML file """
         xmldoc = minidom.parse( xmlfile )
         carNode = xmldoc.getElementsByTagName( 'car' )[0]
         
@@ -153,7 +185,6 @@ class Car:
         self.chassis.setCMassOffsetLocalPos( readPoint3( chassisNode.getElementsByTagName( 'center-of-mass' )[0] ) )
         self.chassisModel = loader.loadModel( chassisNode.getAttribute( 'model' ))
         self.chassisModel.reparentTo( render )
-        
     
     def initTyresByXml( self, physxScene, carNode ):
         """ Loads tire configuraiton from an xml file and applies to the car """
@@ -190,7 +221,7 @@ class Car:
         for cameraNode in cameraNodes:
             np = self.chassisModel.attachNewNode( "camera-" + cameraNode.getAttribute( 'name' ) )
             np.setPos( readPoint3( cameraNode.getElementsByTagName('pos')[0] ) )
-            np.setHpr( readVec3( cameraNode.getElementsByTagName( 'hpr' )[0] ) )
+            np.setHpr( readVec3( cameraNode.getElementsByTagName( 'hpr' )[0]))
             
     def setActiveAudioProfile(self, name):
         for profile in self.audioProfiles:
@@ -231,16 +262,25 @@ class Car:
         elif torque > 1.0:
             torque = 1.0
         torque *= 100
+        dTorque = 2
+        if self.torque < torque:
+            self.torque += dTorque
+        elif self.torque > torque:
+            self.torque -= dTorque
+             
         for tire in self.tires:
             if tire.torque:
-                tire.shape.setMotorTorque( torque )
+                tire.shape.setMotorTorque( self.torque )
         
         
     def simulate(self,dt):
         self.chassisModel.setPosQuat( self.chassis.getGlobalPos(), self.chassis.getGlobalQuat() )
         for tire in self.tires:
             tire.simulate(dt);
-            
+        self.speed = self.chassis.getLinearVelocity().length()
+        if self.currentAudioProfile is not None:
+            self.currentAudioProfile.simulate( dt )
+        #print "speed=" + str( ( self.speed * 60.0 *60.0 ) / 1000.0 ) 
             
         
         
