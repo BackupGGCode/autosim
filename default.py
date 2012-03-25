@@ -10,6 +10,11 @@ from panda3d.physx import PhysxActorDesc
 from panda3d.physx import PhysxBoxShapeDesc
 from panda3d.physx import PhysxPlaneShapeDesc
 from panda3d.physx import PhysxPointOnLineJointDesc
+from panda3d.physx import PhysxTriangleMeshDesc
+from panda3d.physx import PhysxTriangleMesh
+from panda3d.physx import PhysxTriangleMeshShape
+from panda3d.physx import PhysxTriangleMeshShapeDesc
+from panda3d.physx import PhysxKitchen
 
 from skydome import SkyDome
 from Car import Car
@@ -25,16 +30,34 @@ class World( DirectObject ):
         self.sky.sky.setScale( Vec3( 10,10,10))
         self.setupPhysX()
         self.setup3DAudio()
-        self.addGround()
+        #self.addGround()
         self.setupLight()
         #self.car = Car( self.physxScene )
         self.car = Car( self.physxScene, self.audio3d, "defender.xml" )
         #self.car.setSteer( -1.0 )
         self.car.setActiveAudioProfile( 'outside' )
+        self.initTrack()
         taskMgr.add(self.simulate, 'PhysX Simulation')
         self.keyControl = KeyControl()
         self.cameraControl = CameraControl( self.car )
-        #render.setShaderAuto() 
+        render.setShaderAuto() 
+        #self.enablePhysxDebug()
+        
+    def initTrack(self):
+        kitchen = PhysxKitchen()
+        triMeshDesc = PhysxTriangleMeshDesc()
+        self.trackCollision = loader.loadModel( "Resources/Models/TrackCollision.egg" )
+        self.track = loader.loadModel( "Resources/Models/Track.egg" )
+        #self.trackCollision.setScale( Vec3( 0.5, 0.5, 0.5 ) )
+        triMeshDesc.setFromNodePath( self.trackCollision )
+        triMesh = kitchen.cookTriangleMesh( triMeshDesc )
+        triMeshShapeDesc = PhysxTriangleMeshShapeDesc()
+        triMeshShapeDesc.setMesh( triMesh )
+        actor = PhysxActorDesc()
+        actor.setName( 'trackcollision' )
+        actor.addShape( triMeshShapeDesc )
+        self.physxtrack = self.physxScene.createActor( actor )
+        self.track.reparentTo( render ) # todo: replace with nice model
         
     def enablePhysxDebug(self):
         self.debugNP = render.attachNewNode(self.physxScene.getDebugGeomNode())
@@ -74,7 +97,7 @@ class World( DirectObject ):
         sun_source.setColor( Vec4( 1, 0.96, 1, 1 ))
         sun_source.setScene( render )
         sun = render.attachNewNode( sun_source )
-        sun.setHpr( 270, -45, 0 )
+        sun.setHpr( 200, -45, 0 )
         render.setLight( sun )
         
     def simulate(self, task):

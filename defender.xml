@@ -9,12 +9,12 @@
 <car type="Defender 90" turn-angle-outside="32" turn-angle-inside="37" >
 	
 	<camera name="inside">
-		<pos x="0.4" y="0.45" z="0.575" />
+		<pos x="0.4" y="0.45" z="0.5" />
 		<hpr x="180.0" y="0" z="0" />
 	</camera>
 	<camera name="behind">
-		<pos x="0.0" y="10.0" z="4.0" />
-		<hpr x="180.0" y="-20" z="0" />
+		<pos x="0.0" y="10.0" z="3.0" />
+		<hpr x="180.0" y="-10" z="0" />
 	</camera>
 	
 	<audio>
