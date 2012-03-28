@@ -2,6 +2,7 @@ from panda3d.core import *
 from pandac.PandaModules import loadPrcFileData
 loadPrcFileData("", "framebuffer-multisample 1")
 loadPrcFileData("", "prefer-parasite-buffer #f") 
+loadPrcFileData("", "fullscreen 1 win-size 1440 900" )
 import direct.directbase.DirectStart
 from direct.showbase.Audio3DManager import Audio3DManager 
 from direct.showbase.DirectObject import DirectObject
@@ -27,6 +28,8 @@ from cameracontrol import CameraControl
 from speedometer import Speedometer
 from stearingcontrol import SteeringControl
 
+import sys
+
 class World( DirectObject ):
     """ Dynamic world """
     
@@ -49,7 +52,7 @@ class World( DirectObject ):
         self.cameraControl.enableTowerCamera()
         self.speedometer = Speedometer();
         render.setShaderAuto() 
-        
+        self.accept( 'escape', sys.exit )
         #self.enablePhysxDebug()
         
     def initTrack(self):
