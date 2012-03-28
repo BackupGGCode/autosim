@@ -133,6 +133,7 @@ class Car:
         self.torque = 0.0
         self.brake = 0.0
         self.currentAudioProfile = None
+        self.reverse = False
         
     def setCurrentAudioProfile(self, name ):
         newActive = None
@@ -271,7 +272,9 @@ class Car:
         for tire in self.tires:
             if tire.torque:
                 tire.shape.setMotorTorque( self.torque )
-        
+
+    def setReverse(self, rev):
+        self.reverse = rev
         
     def simulate(self,dt):
         self.chassisModel.setPosQuat( self.chassis.getGlobalPos(), self.chassis.getGlobalQuat() )
