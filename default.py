@@ -24,6 +24,7 @@ from skydome import SkyDome
 from Car import Car
 from keycontrol import KeyControl
 from cameracontrol import CameraControl
+from speedometer import Speedometer
 from stearingcontrol import SteeringControl
 
 class World( DirectObject ):
@@ -46,6 +47,7 @@ class World( DirectObject ):
         self.steeringControl = SteeringControl( self.car )
         self.cameraControl = CameraControl( self.car )
         self.cameraControl.enableTowerCamera()
+        self.speedometer = Speedometer();
         render.setShaderAuto() 
         
         #self.enablePhysxDebug()
@@ -140,6 +142,7 @@ class World( DirectObject ):
         self.cameraControl.simulate(dt)
         self.sun.setH( render, -60 )
         self.sun.setP( render, -60 )
+        self.speedometer.updateSpeedometer( self.car.speed )
         return task.cont
     
 
@@ -148,6 +151,7 @@ base.cam.setPos(10, -25, 5)
 base.cam.lookAt(0, 0, 0)
 base.cam.node().getLens().setNear( 0.1 )
 base.cam.node().getLens().setFov( 60 )
+base.enableParticles()
 
 render.setAntialias(AntialiasAttrib.MMultisample,1)
 
