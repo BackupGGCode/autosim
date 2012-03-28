@@ -335,6 +335,11 @@ get_contact(PhysxWheelContactData &dest) const {
 	  dest.valid = true;
 	  dest.contact_point = PhysxManager::nxVec3_to_point3( dt.contactPoint );
 	  dest.contact_position = (float)dt.contactPosition;
+	  dest.contact_force = (float)dt.contactForce;
+	  dest.longitudal_slip = (float)dt.longitudalSlip;
+	  dest.lateral_slip = (float)dt.lateralSlip;
+	  dest.longitudal_impulse = (float)dt.longitudalImpulse;
+	  dest.lateral_impulse = (float)dt.lateralImpulse;
 	  //return (PhysxShape*) shp;
   }
   return NULL;

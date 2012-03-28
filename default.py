@@ -24,9 +24,10 @@ from skydome import SkyDome
 from Car import Car
 from keycontrol import KeyControl
 from cameracontrol import CameraControl
+from stearingcontrol import SteeringControl
 
 class World( DirectObject ):
-    """ """
+    """ Dynamic world """
     
     def __init__(self):
         """ Constructs the World """
@@ -42,26 +43,42 @@ class World( DirectObject ):
         self.initTrack()
         taskMgr.add(self.simulate, 'PhysX Simulation')
         self.keyControl = KeyControl()
+        self.steeringControl = SteeringControl( self.car )
         self.cameraControl = CameraControl( self.car )
         self.cameraControl.enableTowerCamera()
         render.setShaderAuto() 
+        
         #self.enablePhysxDebug()
         
     def initTrack(self):
+        """ Loads the track model and the collision model for it. """
         kitchen = PhysxKitchen()
-        triMeshDesc = PhysxTriangleMeshDesc()
-        self.trackCollision = loader.loadModel( "Resources/Models/TrackCollision.egg" )
+        
+        trackCollision = loader.loadModel( "Resources/Models/TrackCollision.egg" )
+        fenceCollision = loader.loadModel( "Resources/Models/FenceCollision.egg")
         self.track = loader.loadModel( "Resources/Models/Track.egg" )
-        #self.trackCollision.setScale( Vec3( 0.5, 0.5, 0.5 ) )
-        triMeshDesc.setFromNodePath( self.trackCollision )
+
+        triMeshDesc = PhysxTriangleMeshDesc()
+        triMeshDesc.setFromNodePath( trackCollision )
         triMesh = kitchen.cookTriangleMesh( triMeshDesc )
         triMeshShapeDesc = PhysxTriangleMeshShapeDesc()
         triMeshShapeDesc.setMesh( triMesh )
+        
+        triMeshDesc2 = PhysxTriangleMeshDesc()
+        triMeshDesc2.setFromNodePath( fenceCollision )
+        triMesh2 = kitchen.cookTriangleMesh( triMeshDesc2 )
+        triMeshShapeDesc2 = PhysxTriangleMeshShapeDesc()
+        triMeshShapeDesc2.setMesh( triMesh2 )
+        
         actor = PhysxActorDesc()
         actor.setName( 'trackcollision' )
         actor.addShape( triMeshShapeDesc )
+        actor.addShape( triMeshShapeDesc2 )
         self.physxtrack = self.physxScene.createActor( actor )
+        
         self.track.reparentTo( render )
+        loader.loadModel( "Resources/Models/Fence.egg" ).reparentTo( self.track )
+        loader.loadModel( "Resources/Models/Rocks.egg" ).reparentTo( self.track )
         
         linfog = Fog( "Fog" )
         linfog.setColor( Vec4( 0.8, 0.85, 0.8, 1 ) )
@@ -70,25 +87,29 @@ class World( DirectObject ):
         render.setFog(linfog)
         
     def enablePhysxDebug(self):
+        """ Turns on physx visual debuggging """
         self.debugNP = render.attachNewNode(self.physxScene.getDebugGeomNode())
         self.debugNP.node().on()
         self.debugNP.node().visualizeWorldAxes(True)
         
     def setupPhysX(self):
+        """ Sets up the physx world """
         self.physx = PhysxManager.getGlobalPtr()
         sceneDesc = PhysxSceneDesc()
         sceneDesc.setGravity(Vec3(0, 0, -9.81))
         self.physxScene = self.physx.createScene(sceneDesc)
-        mGround = self.physxScene.getMaterial(0)
+        
+        mGround = self.physxScene.getMaterial( 0 )
         mGround.setRestitution(0.0)
         mGround.setStaticFriction(0.8)
-        mGround.setDynamicFriction(0.8)
+        mGround.setDynamicFriction(0.2)
         
     def setup3DAudio(self):
+        """ Initializes the 3D audio manager """
         self.audio3d = Audio3DManager( base.sfxManagerList[0], base.cam )
-
     
     def setupLight(self):
+        """ Sets up the scene lighting """
         ambient_source = AmbientLight('ambient')
         ambient_source.setColor(Vec4( 0.6, 0.65, 0.7, 1 ))
         ambient = render.attachNewNode(ambient_source.upcastToPandaNode())
@@ -110,6 +131,7 @@ class World( DirectObject ):
         
         
     def simulate(self, task):
+        """ Simulation loop, called every frame """
         dt = globalClock.getDt()
         self.physxScene.simulate(dt)
         self.physxScene.fetchResults()
