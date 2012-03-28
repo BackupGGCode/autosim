@@ -9,7 +9,7 @@ Fix Audio
   X Thump sounds (when tires impact) 
 	
 Gauges
-	It would be nice to see the car's KM/h
+  X It would be nice to see the car's KM/h
 	
 Environment
   X Add some props to the Track (buildings, fences, light posts, tires etc.)
@@ -20,6 +20,7 @@ Environment
 Engine behaviour
 	Simulate engine properly
 	Simulate gearbox
+  X Test reverse-gear
 	
 Car physics
   X Car seems a bit slow and sluggish 
@@ -30,4 +31,4 @@ Camera
 Visials:
   X Rear view mirror
 
-Test reverse-gear
+

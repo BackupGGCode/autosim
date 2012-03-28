@@ -12,6 +12,9 @@ from panda3d.physx import PhysxSpringDesc
 from panda3d.physx import PhysxWheelShapeDesc
 from panda3d.physx import PhysxWheelContactData
 
+from direct.particles.Particles import Particles
+from direct.particles.ParticleEffect import ParticleEffect
+
 from xml.dom import minidom
 
 def readVec3( node ):
@@ -47,6 +50,11 @@ class Tire:
         self.brake = True
         self.contactForce = 0.0
         
+        #self.pEff = ParticleEffect()
+        #self.pEff.loadConfig( Filename( "Resources/Particles/dust.ptf" ))
+        #self.pEff.start( self.model, render )
+        #self.pEff.setPos( self.model.getPos() )
+        
     def createWheelShapeTire( self, physxScene, name, pos, carActor, material, radius, suspensionTravel, spring, damper, targetValue ):
         """ Creates a raycast tire using Wheel Shapes which are a simple way of creating physx tires. """
         wheelDesc = PhysxWheelShapeDesc()
@@ -75,6 +83,7 @@ class Tire:
             self.model.setY( self.model, -self.shape.getSuspensionTravel() )
         self.tiremodel.setP( self.tiremodel.getP() + ( dt*self.shape.getAxleSpeed()*57.3 ) )
         self.model.setR( self.model, -self.shape.getSteerAngle() )
+        #self.pEff.setPos( self.model.getPos() )
         #if self.name == "fl":
         #    print "FL contact pos=" + str( contact.getContactPosition() ) + " force=" + str( contact.getContactForce() )
     
@@ -300,6 +309,8 @@ class Car:
         elif torque > 1.0:
             torque = 1.0
         torque *= self.maxTorque
+        if self.reverse:
+            torque *= -1
         dTorque = 2
         if self.torque < torque:
             self.torque += dTorque
@@ -309,6 +320,9 @@ class Car:
         for tire in self.tires:
             if tire.torque:
                 tire.shape.setMotorTorque( self.torque )
+                
+    def setReverse(self, rev):
+        self.reverse = rev
         
         
     def simulate(self,dt):
@@ -316,7 +330,7 @@ class Car:
         for tire in self.tires:
             tire.simulate(dt);
             
-        self.speed = self.chassis.getLinearVelocity().length()
+        self.speed = ( self.chassis.getLinearVelocity().length() * 60 * 60 ) / 1000
         if self.currentAudioProfile is not None:
             self.currentAudioProfile.simulate( dt )
         self.mirrorCam.setPos( self.chassisModel, 0, -0.0, 0.5 )

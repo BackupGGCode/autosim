@@ -11,11 +11,12 @@ class Speedometer(DirectObject):
         """Initialize display of the Speedometer."""
 
         #Load image of the speedometer on the screen.
-        self.spdm = OnscreenImage(image = 'Resources/Images/speedometer.png', scale=0.25, pos = (1, 0, -0.6))
+        ppp = ( -1, 0, -0.7 )
+        self.spdm = OnscreenImage(image = 'Resources/Images/speedometer.png', scale=0.25, pos = ppp )
         self.spdm.setTransparency(TransparencyAttrib.MAlpha) #Enable Transparency
 
         #Load image of the speedometer's pointer on the screen.
-        self.pointer = OnscreenImage(image = 'Resources/Images/needle.png', scale=0.25, pos = (1, 0, -0.6))
+        self.pointer = OnscreenImage(image = 'Resources/Images/needle.png', scale=0.25, pos = ppp )
         self.pointer.setTransparency(TransparencyAttrib.MAlpha) #Enable Transparency
         self.updateSpeedometer(0)
 
