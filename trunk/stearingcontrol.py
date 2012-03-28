@@ -31,6 +31,7 @@ class JoystickHandler(DirectObject):
             if ev.type is pygame.JOYBUTTONDOWN: 
                 name = 'joystick%d-button%d' % (ev.joy, ev.button) 
                 messenger.send(name) 
+                print name
                 
             elif ev.type is pygame.JOYBUTTONUP: 
                 name = 'joystick%d-button%d-up' % (ev.joy, ev.button) 
@@ -60,6 +61,8 @@ class SteeringControl(JoystickHandler):
         self.accept('joystick0-axis2', self.gas) 
         self.accept('joystick0-axis3', self.brake) 
         self.accept('joystick0-axis4', self.clutch) 
+        self.accept('joystick0-button8', self.forward)
+        self.accept('joystick0-button9', self.backward)
 
     def steer(self, value):
         #print "steer " + str(value)
@@ -88,5 +91,13 @@ class SteeringControl(JoystickHandler):
         valForCar = abs(valForCar)
         #print "clutch " + str(valForCar)
         car.setClutch(value)
+
+    def forward(self):
+        #print "forward"
+        car.setReverse(False)
+
+    def backward(self):
+        #print "backward"
+        car.setReverse(True)
 
 
