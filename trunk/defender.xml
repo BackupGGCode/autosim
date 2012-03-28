@@ -9,7 +9,8 @@
 <car type="Defender 90" 
 	turn-angle-outside="32" 
 	turn-angle-inside="37" 
-
+	max-brake="200"
+	max-torque="200"
 	>
 	
 	<camera name="inside">
@@ -26,11 +27,13 @@
 			<engine-idle file="Resources/Audio/defender-engine-idle-outside.wav" loop="true" />
 			<engine-start file="Resources/Audio/defender-engine-start-outside.wav" loop="false" />
 			<road-sound file="Resources/Audio/gravel-outside.wav" loop="true" />
+			<thump-sound file="Resources/Audio/thump-outside.wav" loop="false" />
 		</profile>
 		<profile name="inside">
 			<engine-idle file="Resources/Audio/defender-engine-idle-inside.wav" loop="true" />
 			<engine-start file="Resources/Audio/defender-engine-start-inside.wav" loop="false" />
 			<road-sound file="Resources/Audio/gravel-inside.wav" loop="true" />
+			<thump-sound file="Resources/Audio/thump-inside.wav" loop="false" />
 		</profile>
 	</audio>
 
@@ -39,6 +42,8 @@
 			model:	The path to the car's chassis 3D model.
 	//-->
 	<chassis model="Resources/Models/Defender" >
+		<hide part="**/SteeringWheel" />
+		<mirror part="**/Mirrors" />
 		<!--	Center-of-mass node
 				A 3D position representing the local coordinate of the car's center of gravity.
 		//-->
@@ -79,7 +84,7 @@
 				steerable:	true / false determining wether the wheel is steerable or not.
 				rotation:	Wheel's initial head, used to have all wheels face outside properly
 		//-->
-		<tire name="fl" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="true" rotation="180" >
+		<tire name="fl" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.2" steerable="true" rotation="180" >
 			<!-- A local position for the tire within car coordinates //-->
 			<local-pos x="0.8" y="-1.4" z="-0.70" />
 			<!--	Spring node
@@ -88,20 +93,20 @@
 					damper: Damper coefficient [0,inf]
 					target-value:	Target value (angle/position) of spring where the spring force is zero.
 			//-->
-			<spring spring="4000" damper="2000" target-value="0.5" />
+			<spring spring="4000" damper="1500" target-value="0.5" />
 		</tire>
-		<tire name="fr" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="true" rotation="0" >
+		<tire name="fr" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.2" steerable="true" rotation="0" >
 			<local-pos x="-0.8" y="-1.4" z="-0.70" />
-			<spring spring="4000" damper="2000" target-value="0.5" />
+			<spring spring="4000" damper="1500" target-value="0.5" />
 		</tire>
 		
-		<tire name="rl" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="false" rotation="180" >
+		<tire name="rl" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.2" steerable="false" rotation="180" >
 			<local-pos x="0.8" y="1.25" z="-0.70" />
-			<spring spring="2500" damper="750" target-value="0.5" />
+			<spring spring="2500" damper="550" target-value="0.5" />
 		</tire>
-		<tire name="rr" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.1" steerable="false" rotation="0" >
+		<tire name="rr" model="Resources/Models/Tire" radius="0.4" suspension-travel="0.2" steerable="false" rotation="0" >
 			<local-pos x="-0.8" y="1.25" z="-0.70" />
-			<spring spring="2500" damper="750" target-value="0.5" />
+			<spring spring="2500" damper="550" target-value="0.5" />
 		</tire>
 	</tires>
 	

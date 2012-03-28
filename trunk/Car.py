@@ -33,20 +33,21 @@ def toBool( string ):
 class Tire:
     """ Represents a tire on a car, and the suspension """
     
-    def __init__( self, physxScene, name, pos, carActor, hdg, material, radius, spring, damper, targetValue ):
+    def __init__( self, physxScene, name, pos, carActor, hdg, material, radius, suspensionTravel, spring, damper, targetValue ):
+        self.name = name
         self.model = render.attachNewNode( name + "nodeBase" )
         self.tiremodel = loader.loadModel( "Resources/Models/Tire" )
         self.tiremodel.setR( hdg )
         self.initialH = hdg
         self.tiremodel.reparentTo( self.model )
         self.model.reparentTo( render )
-        self.createWheelShapeTire( physxScene, name, pos, carActor, material, radius, spring, damper, targetValue )
+        self.createWheelShapeTire( physxScene, name, pos, carActor, material, radius, suspensionTravel, spring, damper, targetValue )
         self.steerable = True
         self.torque = True
         self.brake = True
-
+        self.contactForce = 0.0
         
-    def createWheelShapeTire( self, physxScene, name, pos, carActor, material, radius, spring, damper, targetValue ):
+    def createWheelShapeTire( self, physxScene, name, pos, carActor, material, radius, suspensionTravel, spring, damper, targetValue ):
         """ Creates a raycast tire using Wheel Shapes which are a simple way of creating physx tires. """
         wheelDesc = PhysxWheelShapeDesc()
         wheelDesc.setRadius( radius )
@@ -56,22 +57,26 @@ class Tire:
         springDesc.setSpring( spring )
         springDesc.setDamper( damper )
         springDesc.setTargetValue( targetValue )
-        wheelDesc.setSuspensionTravel( 0.1 )
+        wheelDesc.setSuspensionTravel( suspensionTravel )
         wheelDesc.setSuspension( springDesc )
         self.shape = carActor.createShape( wheelDesc )
-
+        self.spring = spring
 
     def simulate(self, dt ):
         """ Simulates the tire, places the visual model according to the physical model """
         self.model.setPosQuat( self.shape.getGlobalPos(), self.shape.getGlobalQuat() )    # Inherit position from the WheelShape
         contact = PhysxWheelContactData()
         self.shape.getContact( contact )
+        self.contactForce = contact.getContactForce()
+        self.contactPosition = contact.getContactPosition()
         if contact.isValid():
             self.model.setY( self.model, self.shape.getRadius() - contact.getContactPosition() )
         else:
             self.model.setY( self.model, -self.shape.getSuspensionTravel() )
         self.tiremodel.setP( self.tiremodel.getP() + ( dt*self.shape.getAxleSpeed()*57.3 ) )
         self.model.setR( self.model, -self.shape.getSteerAngle() )
+        #if self.name == "fl":
+        #    print "FL contact pos=" + str( contact.getContactPosition() ) + " force=" + str( contact.getContactForce() )
     
         
 class AudioProfile:
@@ -86,6 +91,7 @@ class AudioProfile:
         self.engineIdle = self.loadSoundNode( audio3d, car, profileNode, 'engine-idle' )
         self.engineStart = self.loadSoundNode( audio3d, car, profileNode, 'engine-start' )
         self.roadSound = self.loadSoundNode( audio3d, car, profileNode, 'road-sound' )
+        self.thumpSound = self.loadSoundNode( audio3d, car, profileNode, 'thump-sound' )
         self.car = car
     
     def loadSoundNode( self, audio3d, car, parentNode, nodeName ):
@@ -116,6 +122,10 @@ class AudioProfile:
     def simulate( self, dt ):
         self.roadSound.setVolume( min( self.car.speed / 15, 3.0 ) )
         self.engineIdle.setPlayRate( max( 1.0, self.car.torque / 75 ))
+        for tire in self.car.tires:
+            if tire.contactForce > 10000:
+                self.thumpSound.setVolume( min( 1.0, tire.contactForce / 200000 ))
+                self.thumpSound.play()
     
     #def simulate(self, dt ):
 
@@ -128,12 +138,24 @@ class Car:
         self.audioProfiles = [] # Holds the Car's audio profiles
         self.steer = 0.0        # Represents current steering value
         self.engineTorque = 0.0 # Represents the engine torque
+        self.initMirrorCam()
         self.initByXml( physxScene, audio3d, xmlfile )
         self.speed = 0.0        # The car's speed.
         self.torque = 0.0
         self.brake = 0.0
         self.currentAudioProfile = None
         self.reverse = False
+    
+    def initMirrorCam(self):
+        #we get a handle to the default window
+        mainWindow=base.win
+        #we now get buffer thats going to hold the texture of our new scene   
+        self.mirrorBuffer = mainWindow.makeTextureBuffer( "hello", 512, 512 )
+        self.mirrorBuffer.setSort( -100 )
+        #this takes care of setting up ther camera properly
+        self.mirrorCam = base.makeCamera( self.mirrorBuffer )
+        self.mirrorCam.reparentTo( render )
+        #self.mirrorCam.setPos( 0, -10, 0 ) 
         
     def setCurrentAudioProfile(self, name ):
         newActive = None
@@ -156,6 +178,8 @@ class Car:
         self.type = carNode.getAttribute( 'type' )
         self.innerSteer = float( carNode.getAttribute( 'turn-angle-inside' ) )
         self.outerSteer = float( carNode.getAttribute( 'turn-angle-outside' ) )
+        self.maxBrake = float( carNode. getAttribute( "max-brake" ))
+        self.maxTorque = float( carNode.getAttribute( "max-torque" ))
         self.initChassisByXml( physxScene, carNode )
         self.initTyresByXml( physxScene, carNode )
         self.initAudioByXml( audio3d, carNode )
@@ -186,13 +210,25 @@ class Car:
         self.chassis.setCMassOffsetLocalPos( readPoint3( chassisNode.getElementsByTagName( 'center-of-mass' )[0] ) )
         self.chassisModel = loader.loadModel( chassisNode.getAttribute( 'model' ))
         self.chassisModel.reparentTo( render )
+        for hideNode in chassisNode.getElementsByTagName( 'hide' ):
+            part = self.chassisModel.find( hideNode.getAttribute( 'part' ))
+            if part is not None:
+                part.hide()
+        for mirrorNode in chassisNode.getElementsByTagName( 'mirror' ):
+            mirror = self.chassisModel.find( mirrorNode.getAttribute( 'part' ) )
+            if mirror is not None:
+                self.setAsMirror( mirror )
+                
+    def setAsMirror(self, mirrorNp):
+        """ Sets the given node path as a mirror object """
+        mirrorNp.setTexture( self.mirrorBuffer.getTexture(), 1 )
     
     def initTyresByXml( self, physxScene, carNode ):
         """ Loads tire configuraiton from an xml file and applies to the car """
         rubberDesc = PhysxMaterialDesc()
-        rubberDesc.setRestitution(0.1)
-        rubberDesc.setStaticFriction(1.2)
-        rubberDesc.setDynamicFriction(0.1)
+        rubberDesc.setRestitution( 0.3 )
+        rubberDesc.setStaticFriction( 0.3 )
+        rubberDesc.setDynamicFriction( 0.01 )
         mRubber = physxScene.createMaterial( rubberDesc )
         # Start loading the tires ...
         tireNodes = carNode.getElementsByTagName( 'tire' )
@@ -202,6 +238,7 @@ class Car:
             tire = Tire( physxScene, tireNode.getAttribute( 'name' ), pos, self.chassis, 
                          int( tireNode.getAttribute( 'rotation' ) ),  mRubber, 
                          float( tireNode.getAttribute( 'radius' ) ), 
+                         float( tireNode.getAttribute( 'suspension-travel' ) ),
                          float( springNode.getAttribute( 'spring' ) ),
                          float( springNode.getAttribute( 'damper' ) ),
                          float( springNode.getAttribute( 'target-value' ) ) )
@@ -251,7 +288,7 @@ class Car:
             brake = 0.0
         elif brake > 1.0:
             brake = 1.0
-        brake *= 1000
+        brake *= self.maxBrake
         for tire in self.tires:
             if tire.brake:
                 tire.shape.setBrakeTorque( brake )
@@ -262,7 +299,7 @@ class Car:
             torque = 0.0
         elif torque > 1.0:
             torque = 1.0
-        torque *= 100
+        torque *= self.maxTorque
         dTorque = 2
         if self.torque < torque:
             self.torque += dTorque
@@ -272,17 +309,19 @@ class Car:
         for tire in self.tires:
             if tire.torque:
                 tire.shape.setMotorTorque( self.torque )
-
-    def setReverse(self, rev):
-        self.reverse = rev
+        
         
     def simulate(self,dt):
         self.chassisModel.setPosQuat( self.chassis.getGlobalPos(), self.chassis.getGlobalQuat() )
         for tire in self.tires:
             tire.simulate(dt);
+            
         self.speed = self.chassis.getLinearVelocity().length()
         if self.currentAudioProfile is not None:
             self.currentAudioProfile.simulate( dt )
+        self.mirrorCam.setPos( self.chassisModel, 0, -0.0, 0.5 )
+        self.mirrorCam.setHpr( self.chassisModel, 5, 0, 0 )
+        #self.mirrorCam.setP( self.chassisModel, 0 )
         #print "speed=" + str( ( self.speed * 60.0 *60.0 ) / 1000.0 ) 
             
         
