@@ -14,7 +14,9 @@ class JoystickHandler(DirectObject):
             js.init() 
             self.__joysticks.append(js) 
 
-        taskMgr.add(self.__on_joystick_polling, 'Joystick Polling') 
+        taskMgr.add(self.__on_joystick_polling, 'Joystick Polling')
+        self.gasValue = 0.0
+        self.brakeValue = 0.0 
         
     def destroy(self): 
         pygame.quit() 
@@ -49,6 +51,7 @@ class JoystickHandler(DirectObject):
                 name = 'joystick%d-hat%d' % (ev.joy, ev.hat) 
                 messenger.send(name, [ev.value]) 
 
+            #print name
         return task.cont 
 
 class SteeringControl(JoystickHandler): 
@@ -66,23 +69,23 @@ class SteeringControl(JoystickHandler):
 
     def steer(self, value):
         #print "steer " + str(value)
-        car.setSteer(value)
+        self.car.setSteer(value)
 
     def gas(self, value):
         #Change range from 1.0 - -1.0 (where 1 is lowest) to 0 - -1 (where 0 is lowest)
         valForCar = (value -1) / 2
         #Now change max value from -1 to 1 but keep 0 as min value
-        valForCar = abs(valForCar)
+        self.gasValue = abs(valForCar)
         #print "gas " + str(valForCar)
-        car.setMotorTorque(value)
+        #self.car.setMotorTorque(value)
 
     def brake(self, value):
         #Change range from 1.0 - -1.0 (where 1 is lowest) to 0 - -1 (where 0 is lowest)
         valForCar = (value -1) / 2
         #Now change max value from -1 to 1 but keep 0 as min value
-        valForCar = abs(valForCar)
+        self.brakeValue = abs(valForCar)
         #print "brake " + str(valForCar)
-        car.setBrake(value)
+        #self.car.setBrake(value)
 
     def clutch(self, value):
         #Change range from 1.0 - -1.0 (where 1 is lowest) to 0 - -1 (where 0 is lowest)
@@ -90,14 +93,20 @@ class SteeringControl(JoystickHandler):
         #Now change max value from -1 to 1 but keep 0 as min value
         valForCar = abs(valForCar)
         #print "clutch " + str(valForCar)
-        car.setClutch(value)
+        #self.car.setClutch(value)
 
     def forward(self):
         #print "forward"
-        car.setReverse(False)
+        self.car.setReverse(False)
 
     def backward(self):
         #print "backward"
-        car.setReverse(True)
+        self.car.setReverse(True)
+        
+    def simulate(self, dt):
+        #print self.gasValue
+        self.car.setMotorTorque( self.gasValue )
+        self.car.setBrake( self.brakeValue )
+        #self.car.setSteer( )
 
 
