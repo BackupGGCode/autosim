@@ -1,3 +1,11 @@
+PREREQUISITES:
+
+PhysX_2.8.4.6_for_PC_Core.msi Available at: developer.nvidia.com (requires a user account)
+pygame-1.9.1.win32-py2.7.msi Available at: http://www.pygame.org/download.shtml
+
+If using a Logitech G25 steering wheel:
+Logitech Gaming Software for Multilingual 64-bit Windows 7. Available at: http://www.logitech.com/en-us/441/131?section=downloads&bit=&osid=14
+
 
 INSTALING:
 
@@ -24,5 +32,6 @@ Run the application with 'python default.py'
 LEGAL:
 
 Land Rover Defender car model received from: 	www.dmi-3d.net
-Gravel sounds received from:					www.alwaysfree.nl/free_sound_effects/cars/slides/Tires_On_Gravel_Steady.html
+Gravel sounds received from:			www.alwaysfree.nl/free_sound_effects/cars/slides/Tires_On_Gravel_Steady.html
 Land Rover Defender audio files received from:	www.salamisound.com
+Speedometer textures are from:                  www.gtaforums.com/index.php?showtopic=494178
