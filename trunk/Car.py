@@ -50,6 +50,7 @@ class Tire:
         self.brake = True
         self.contactForce = 0.0
         
+        # Particle effect for road dust - disabled since it doesn't look so good.. 
         #self.pEff = ParticleEffect()
         #self.pEff.loadConfig( Filename( "Resources/Particles/dust.ptf" ))
         #self.pEff.start( self.model, render )
@@ -69,6 +70,11 @@ class Tire:
         wheelDesc.setSuspension( springDesc )
         self.shape = carActor.createShape( wheelDesc )
         self.spring = spring
+        self.damper = damper
+        self.targetValue = targetValue
+        
+    def setClutch(self, value):
+        """ Not implemeneted """
 
     def simulate(self, dt ):
         """ Simulates the tire, places the visual model according to the physical model """
@@ -84,8 +90,6 @@ class Tire:
         self.tiremodel.setP( self.tiremodel.getP() + ( dt*self.shape.getAxleSpeed()*57.3 ) )
         self.model.setR( self.model, -self.shape.getSteerAngle() )
         #self.pEff.setPos( self.model.getPos() )
-        #if self.name == "fl":
-        #    print "FL contact pos=" + str( contact.getContactPosition() ) + " force=" + str( contact.getContactForce() )
     
         
 class AudioProfile:
@@ -135,8 +139,6 @@ class AudioProfile:
             if tire.contactForce > 10000:
                 self.thumpSound.setVolume( min( 1.0, tire.contactForce / 200000 ))
                 self.thumpSound.play()
-    
-    #def simulate(self, dt ):
 
 class Car:
     """ """
@@ -216,7 +218,9 @@ class Car:
             actorDesc.addShape( shapeDesc )
             
         self.chassis = physxScene.createActor( actorDesc )
-        self.chassis.setCMassOffsetLocalPos( readPoint3( chassisNode.getElementsByTagName( 'center-of-mass' )[0] ) )
+        vMassCenter = readPoint3( chassisNode.getElementsByTagName( 'center-of-mass' )[0] )
+        self.chassis.setCMassOffsetLocalPos( vMassCenter )
+        self.massCenter = vMassCenter 
         self.chassisModel = loader.loadModel( chassisNode.getAttribute( 'model' ))
         self.chassisModel.reparentTo( render )
         for hideNode in chassisNode.getElementsByTagName( 'hide' ):
@@ -291,6 +295,7 @@ class Car:
                 else:
                     tire.shape.setSteerAngle( self.outerSteer * steer )
         
+        
     def setBrake(self, brake):
         """ Sets the brake force on the car.  The value ranges from 0.0 to 1.0, 1.0 being maximum brake applied """
         if brake < 0.0:
@@ -330,12 +335,13 @@ class Car:
         for tire in self.tires:
             tire.simulate(dt);
             
-        self.speed = ( self.chassis.getLinearVelocity().length() * 60 * 60 ) / 1000
+        velocity = self.chassis.getLinearVelocity()
+        self.speed = ( velocity.length() * 60 * 60 ) / 1000
+        #print "x=" + str( vel2.getX() ) + "y=" + str( vel2.getY() ) + "z=" + str( vel2.getZ() )
         if self.currentAudioProfile is not None:
             self.currentAudioProfile.simulate( dt )
         self.mirrorCam.setPos( self.chassisModel, 0, -0.0, 0.5 )
         self.mirrorCam.setHpr( self.chassisModel, 5, 0, 0 )
-        #self.mirrorCam.setP( self.chassisModel, 0 )
         #print "speed=" + str( ( self.speed * 60.0 *60.0 ) / 1000.0 ) 
             
         

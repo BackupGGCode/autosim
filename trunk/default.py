@@ -2,7 +2,8 @@ from panda3d.core import *
 from pandac.PandaModules import loadPrcFileData
 loadPrcFileData("", "framebuffer-multisample 1")
 loadPrcFileData("", "prefer-parasite-buffer #f") 
-loadPrcFileData("", "fullscreen 1 win-size 1440 900" )
+loadPrcFileData("", """fullscreen 1""" )
+
 import direct.directbase.DirectStart
 from direct.showbase.Audio3DManager import Audio3DManager 
 from direct.showbase.DirectObject import DirectObject
@@ -23,7 +24,7 @@ from panda3d.physx import PhysxKitchen
 
 from skydome import SkyDome
 from Car import Car
-from keycontrol import KeyControl
+from keycontrol import KeyControl 
 from cameracontrol import CameraControl
 from speedometer import Speedometer
 from stearingcontrol import SteeringControl
@@ -46,13 +47,18 @@ class World( DirectObject ):
         self.setupLight()
         self.initTrack()
         taskMgr.add(self.simulate, 'PhysX Simulation')
-        self.keyControl = KeyControl()
-        self.steeringControl = SteeringControl( self.car )
+        
+        # To to use Steering Wheel change inputHandler to SteeringControl 
+        self.inputHandler = KeyControl( self.car )
+        #self.inputHandler = SteeringControl( self.car )
+        
         self.cameraControl = CameraControl( self.car )
         self.cameraControl.enableTowerCamera()
         self.speedometer = Speedometer();
         render.setShaderAuto() 
         self.accept( 'escape', sys.exit )
+        
+        # To turn on physx visual debugging, uncomment below
         #self.enablePhysxDebug()
         
     def initTrack(self):
@@ -141,15 +147,15 @@ class World( DirectObject ):
         self.physxScene.simulate(dt)
         self.physxScene.fetchResults()
         self.car.simulate(dt)
-        self.keyControl.controlCar( self.car )
         self.cameraControl.simulate(dt)
         self.sun.setH( render, -60 )
         self.sun.setP( render, -60 )
         self.speedometer.updateSpeedometer( self.car.speed )
+        self.inputHandler.simulate( dt )
         return task.cont
     
 
-#base.disableMouse()
+
 base.cam.setPos(10, -25, 5)
 base.cam.lookAt(0, 0, 0)
 base.cam.node().getLens().setNear( 0.1 )
